@@ -30,6 +30,7 @@
 
 namespace GlpiPlugin\Mod;
 
+use Plugin;
 use Session;
 use Toolbox;
 
@@ -43,8 +44,16 @@ class BrandManager
     public const FILES_DIR = GLPI_PLUGIN_DOC_DIR . "/mod";
     public const BACKUP_DIR = self::FILES_DIR . "/backups";
     public const IMAGES_DIR = self::FILES_DIR . "/images";
-    public const RESOURCES_DIR = GLPI_ROOT . "/plugins/mod/resources";
-    public const IMAGE_RESOURCES = [
+    // public const RESOURCES_DIR = Plugin::getPhpDir('mod') . '/resources';
+    public static function getResourcesDir(): string
+    {
+        return Plugin::getPhpDir('mod') . '/resources';
+    }
+
+public static function getImageResources(): array
+{
+    return [
+
         /*
          * Something special about background.jpg:
          * (OBSOLETE - FOUND SOLUTION BELOW)
@@ -66,20 +75,20 @@ class BrandManager
          *
          */
         "background" => [
-            "default" => self::RESOURCES_DIR . "/images/background.jpg",
+            "default" => self::getResourcesDir() . "/images/background.jpg",
             "current" => self::IMAGES_DIR . "/background.jpg",
 //            "active" => GLPI_ROOT . "/public/pics/plugin_mod_background.jpg",
             "accept" => ["jpeg", "jpg"]
         ],
         "favicon" => [
-            "default" => self::RESOURCES_DIR . "/images/favicon.ico",
+            "default" => self::getResourcesDir() . "/images/favicon.ico",
             "current" => self::IMAGES_DIR . "/favicon.ico",
             "active" => GLPI_ROOT . "/public/pics/favicon.ico",
             "backup" => self::BACKUP_DIR . "/favicon.ico",
             "accept" => ["ico"]
         ],
         "logo_s" => [
-            "default" => self::RESOURCES_DIR . "/images/logo-G-100.png",
+            "default" => self::getResourcesDir() . "/images/logo-G-100.png",
             "current" => self::IMAGES_DIR . "/logo-G-100.png",
             "active" => [
                 GLPI_ROOT . "/public/pics/logos/logo-G-100-black.png",
@@ -94,7 +103,7 @@ class BrandManager
             "accept" => ["png"]
         ],
         "logo_m" => [
-            "default" => self::RESOURCES_DIR . "/images/logo-GLPI-100.png",
+            "default" => self::getResourcesDir() . "/images/logo-GLPI-100.png",
             "current" => self::IMAGES_DIR . "/logo-GLPI-100.png",
             "active" => [
                 GLPI_ROOT . "/public/pics/logos/logo-GLPI-100-black.png",
@@ -109,7 +118,7 @@ class BrandManager
             "accept" => ["png"]
         ],
         "logo_l" => [
-            "default" => self::RESOURCES_DIR . "/images/logo-GLPI-250.png",
+            "default" => self::getResourcesDir() . "/images/logo-GLPI-250.png",
             "current" => self::IMAGES_DIR . "/logo-GLPI-250.png",
             "active" => [
                 GLPI_ROOT . "/public/pics/logos/logo-GLPI-250-black.png",
@@ -124,13 +133,13 @@ class BrandManager
             "accept" => ["png"]
         ],
     ];
-
+}
     /**
      * @return bool
      */
     private static function initModifiers(): bool
     {
-        return copy(self::RESOURCES_DIR . "/modifiers.ini", self::FILES_DIR . "/modifiers.ini");
+        return copy(self::getResourcesDir() . "/modifiers.ini", self::FILES_DIR . "/modifiers.ini");
     }
 
     /**
@@ -169,7 +178,7 @@ class BrandManager
         // handle default images
         $someResourceInstalled = false;
         $someBackupCreated = false;
-        foreach (self::IMAGE_RESOURCES as $imageResource => $paths) {
+        foreach (self::getImageResources() as $imageResource => $paths) {
             if (!file_exists($paths["current"])) {
                 if (!copy($paths["default"], $paths["current"])) {
                     die("Unable to install $imageResource resource");
@@ -212,7 +221,7 @@ class BrandManager
      */
     public function uninstall(): void
     {
-        foreach (array_keys(self::IMAGE_RESOURCES) as $resourceName) {
+        foreach (array_keys(self::getImageResources()) as $resourceName) {
             $this->restoreResource($resourceName);
         }
         $this->disableLoginPageModifier();
@@ -230,10 +239,11 @@ class BrandManager
      */
     public static function resourceBackupExists(string $resourceName): bool
     {
-        if (!isset(self::IMAGE_RESOURCES[$resourceName]["backup"])) return false;
-        if (is_array(self::IMAGE_RESOURCES[$resourceName]["backup"])) {
-            return file_exists(self::IMAGE_RESOURCES[$resourceName]["backup"][0]);
-        } else if (file_exists(self::IMAGE_RESOURCES[$resourceName]["backup"])) {
+        $resources = self::getImageResources();
+        if (!isset($resources[$resourceName]["backup"])) return false;
+        if (is_array(self::getImageResources()[$resourceName]["backup"])) {
+            return file_exists(self::getImageResources()[$resourceName]["backup"][0]);
+        } else if (file_exists(self::getImageResources()[$resourceName]["backup"])) {
             return true;
         }
         return false;
@@ -252,29 +262,30 @@ class BrandManager
      */
     public static function isActiveResourceModified(string $resourceName): bool
     {
-        if (!isset(self::IMAGE_RESOURCES[$resourceName]["active"], self::IMAGE_RESOURCES[$resourceName]["backup"])) return false;
+        $resources = self::getImageResources();
+        if (!isset($resources[$resourceName]["active"], $resources[$resourceName]["backup"])) return false;
 
-        if (isset(self::IMAGE_RESOURCES[$resourceName]["backup"])) {
+        if (isset($resources[$resourceName]["backup"])) {
             // backups are made - check md5 hash of files
-            if (is_array(self::IMAGE_RESOURCES[$resourceName]["active"])) {
-                for ($i = 0, $iMax = count(self::IMAGE_RESOURCES[$resourceName]["active"]); $i < $iMax; $i++) {
+            if (is_array($resources[$resourceName]["active"])) {
+                for ($i = 0, $iMax = count($resources[$resourceName]["active"]); $i < $iMax; $i++) {
                     // if active file does not exist resource is not modified
-                    if (!file_exists(self::IMAGE_RESOURCES[$resourceName]["active"][$i])) continue;
+                    if (!file_exists($resources[$resourceName]["active"][$i])) continue;
                     // if backup file does not exist (user deleted backup folder) we say it is modified
-                    if (!file_exists(self::IMAGE_RESOURCES[$resourceName]["backup"][$i])) return true;
+                    if (!file_exists($resources[$resourceName]["backup"][$i])) return true;
                     // compare file hashes
-                    if (md5_file(self::IMAGE_RESOURCES[$resourceName]["active"][$i]) !== md5_file(self::IMAGE_RESOURCES[$resourceName]["backup"][$i])) return true;
+                    if (md5_file($resources[$resourceName]["active"][$i]) !== md5_file($resources[$resourceName]["backup"][$i])) return true;
                 }
                 return false;
             } else {
-                if (!file_exists(self::IMAGE_RESOURCES[$resourceName]["active"])) return false;
-                if (!file_exists(self::IMAGE_RESOURCES[$resourceName]["backup"])) return true;
-                return md5_file(self::IMAGE_RESOURCES[$resourceName]["active"]) !== md5_file(self::IMAGE_RESOURCES[$resourceName]["backup"]);
+                if (!file_exists($resources[$resourceName]["active"])) return false;
+                if (!file_exists($resources[$resourceName]["backup"])) return true;
+                return md5_file($resources[$resourceName]["active"]) !== md5_file($resources[$resourceName]["backup"]);
             }
-        } else if (is_array(self::IMAGE_RESOURCES[$resourceName]["active"])) {
-            if (!isset(self::IMAGE_RESOURCES[$resourceName]["active"][0])) return false;
-            return file_exists(self::IMAGE_RESOURCES[$resourceName]["active"][0]);
-        } else return file_exists(self::IMAGE_RESOURCES[$resourceName]["active"]);
+        } else if (is_array($resources[$resourceName]["active"])) {
+            if (!isset($resources[$resourceName]["active"][0])) return false;
+            return file_exists($resources[$resourceName]["active"][0]);
+        } else return file_exists($resources[$resourceName]["active"]);
     }
 
     /**
@@ -289,28 +300,29 @@ class BrandManager
      */
     public function restoreResource(string $resourceName): void
     {
-        if (!isset(self::IMAGE_RESOURCES[$resourceName]["active"])) return;
-        if (isset(self::IMAGE_RESOURCES[$resourceName]["backup"])) {
-            if (is_array(self::IMAGE_RESOURCES[$resourceName]["active"])) {
+        $resources = self::getImageResources();
+        if (!isset($resources[$resourceName]["active"])) return;
+        if (isset($resources[$resourceName]["backup"])) {
+            if (is_array($resources[$resourceName]["active"])) {
                 // restore multiple files
-                for ($i = 0, $iMax = count(self::IMAGE_RESOURCES[$resourceName]["active"]); $i < $iMax; $i++) {
+                for ($i = 0, $iMax = count($resources[$resourceName]["active"]); $i < $iMax; $i++) {
                     // skip if backup does not exist
-                    if (!file_exists(self::IMAGE_RESOURCES[$resourceName]["backup"][$i])) continue;
-                    copy(self::IMAGE_RESOURCES[$resourceName]["backup"][$i], self::IMAGE_RESOURCES[$resourceName]["active"][$i]);
+                    if (!file_exists($resources[$resourceName]["backup"][$i])) continue;
+                    copy($resources[$resourceName]["backup"][$i], $resources[$resourceName]["active"][$i]);
                 }
             } else {
                 // restore a single file
-                if (!file_exists(self::IMAGE_RESOURCES[$resourceName]["backup"])) return;
-                copy(self::IMAGE_RESOURCES[$resourceName]["backup"], self::IMAGE_RESOURCES[$resourceName]["active"]);
+                if (!file_exists($resources[$resourceName]["backup"])) return;
+                copy($resources[$resourceName]["backup"], $resources[$resourceName]["active"]);
             }
-        } else if (is_array(self::IMAGE_RESOURCES[$resourceName]["active"])) {
+        } else if (is_array($resources[$resourceName]["active"])) {
             // files have no backup - remove all active files
-            foreach (self::IMAGE_RESOURCES[$resourceName]["active"] as $activeFile) {
+            foreach ($resources[$resourceName]["active"] as $activeFile) {
                 unlink($activeFile);
             }
         } else {
             // file has no backup - remove the active file
-            unlink(self::IMAGE_RESOURCES[$resourceName]["active"]);
+            unlink($resources[$resourceName]["active"]);
         }
     }
 
@@ -326,13 +338,14 @@ class BrandManager
      */
     public function applyResource(string $resourceName): void
     {
-        if (!isset(self::IMAGE_RESOURCES[$resourceName]["active"])) return;
-        if (is_array(self::IMAGE_RESOURCES[$resourceName]["active"])) {
-            foreach (self::IMAGE_RESOURCES[$resourceName]["active"] as $activeFile) {
-                copy(self::IMAGE_RESOURCES[$resourceName]["current"], $activeFile);
+        $resources = self::getImageResources();
+        if (!isset($resources[$resourceName]["active"])) return;
+        if (is_array($resources[$resourceName]["active"])) {
+            foreach ($resources[$resourceName]["active"] as $activeFile) {
+                copy($resources[$resourceName]["current"], $activeFile);
             }
         } else {
-            copy(self::IMAGE_RESOURCES[$resourceName]["current"], self::IMAGE_RESOURCES[$resourceName]["active"]);
+            copy($resources[$resourceName]["current"], $resources[$resourceName]["active"]);
         }
     }
 
@@ -349,7 +362,8 @@ class BrandManager
      */
     public function uploadResource(string $resourceName, array $file): bool
     {
-        if (!isset(self::IMAGE_RESOURCES[$resourceName])) return false;
+        $resources = self::getImageResources();
+        if (!isset($resources[$resourceName])) return false;
         if (!isset($file["tmp_name"])) return false;
         if (isset($file["error"]) && $file["error"] !== UPLOAD_ERR_OK) {
             Session::addMessageAfterRedirect(sprintf("❌ Upload of file %s failed (file invalid)", $file["name"]));
@@ -357,11 +371,11 @@ class BrandManager
         }
 
         $extension = pathinfo($file["name"], PATHINFO_EXTENSION);
-        if (!in_array($extension, self::IMAGE_RESOURCES[$resourceName]["accept"], true)) {
-            Session::addMessageAfterRedirect(sprintf("❌ Uploaded file %s is invalid (only %s accepted)", $file["name"], implode(", ", self::IMAGE_RESOURCES[$resourceName]["accept"])));
+        if (!in_array($extension, $resources[$resourceName]["accept"], true)) {
+            Session::addMessageAfterRedirect(sprintf("❌ Uploaded file %s is invalid (only %s accepted)", $file["name"], implode(", ", $resources[$resourceName]["accept"])));
             return false;
         }
-        if (!move_uploaded_file($file["tmp_name"], self::IMAGE_RESOURCES[$resourceName]["current"])) {
+        if (!move_uploaded_file($file["tmp_name"], $resources[$resourceName]["current"])) {
             Session::addMessageAfterRedirect(sprintf("❌ Upload of file %s failed", $file["name"]));
             return false;
         }
@@ -410,7 +424,7 @@ class BrandManager
             return "GLPI";
         }
         $ini = parse_ini_file(self::FILES_DIR . "/modifiers.ini");
-        if ($ini === false) return false;
+        if ($ini === false) return "GLPI";
         if (!isset($ini["title"])) {
             self::initModifiers();
             return "GLPI";

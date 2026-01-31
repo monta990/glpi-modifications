@@ -71,15 +71,15 @@ class UIBranding
         if (isset($data['show_background'])) {
             if ($data['show_background'] === '1') {
                 // overwrite background if changed or not overwritten yet
-                if ($backgroundChanged || !$brandManager::isLoginPageModified()) {
+                if ($backgroundChanged || !BrandManager::isLoginPageModified()) {
                     $brandManager->applyResource("background");
                 }
                 $brandManager->applyLoginPageModifier();
-            } else if ($brandManager::isLoginPageModified()) {
+            } else if (BrandManager::isLoginPageModified()) {
                 $brandManager->restoreResource("background");
                 $brandManager->disableLoginPageModifier();
             }
-        } else if ($backgroundChanged && $brandManager::isLoginPageModified()) {
+        } else if ($backgroundChanged && BrandManager::isLoginPageModified()) {
             $brandManager->applyResource("background");
         }
 
@@ -88,18 +88,18 @@ class UIBranding
                 // overwrite background if changed or not overwritten yet
                 if (
                     $logosChanged
-                    || !$brandManager::isActiveResourceModified("logo_s")
-                    || !$brandManager::isActiveResourceModified("logo_m")
-                    || !$brandManager::isActiveResourceModified("logo_l")
+                    || !BrandManager::isActiveResourceModified("logo_s")
+                    || !BrandManager::isActiveResourceModified("logo_m")
+                    || !BrandManager::isActiveResourceModified("logo_l")
                 ) {
                     $brandManager->applyResource("logo_s");
                     $brandManager->applyResource("logo_m");
                     $brandManager->applyResource("logo_l");
                 }
             } else if (
-                $brandManager::isActiveResourceModified("logo_s")
-                || $brandManager::isActiveResourceModified("logo_m")
-                || $brandManager::isActiveResourceModified("logo_l")
+                BrandManager::isActiveResourceModified("logo_s")
+                || BrandManager::isActiveResourceModified("logo_m")
+                || BrandManager::isActiveResourceModified("logo_l")
             ) {
                 $brandManager->restoreResource("logo_s");
                 $brandManager->restoreResource("logo_m");
@@ -114,13 +114,13 @@ class UIBranding
         if (isset($data['show_custom_favicon'])) {
             if ($data['show_custom_favicon'] === '1') {
                 // overwrite background if changed or not overwritten yet
-                if ($faviconChanged || !$brandManager::isActiveResourceModified("favicon")) {
+                if ($faviconChanged || !BrandManager::isActiveResourceModified("favicon")) {
                     $brandManager->applyResource("favicon");
                 }
-            } else if ($brandManager::isActiveResourceModified("favicon")) {
+            } else if (BrandManager::isActiveResourceModified("favicon")) {
                 $brandManager->restoreResource("favicon");
             }
-        } else if ($faviconChanged && $brandManager::isActiveResourceModified("favicon")) {
+        } else if ($faviconChanged && BrandManager::isActiveResourceModified("favicon")) {
             $brandManager->applyResource("favicon");
         }
 

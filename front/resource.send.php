@@ -39,11 +39,17 @@ if (!Plugin::isPluginActive("mod")) {
 Session::checkRight("config", UPDATE);
 
 $key = $_GET['resource'] ?? '';
-if ($key === "" || !isset(BrandManager::IMAGE_RESOURCES[$key]["current"]) || !file_exists(BrandManager::IMAGE_RESOURCES[$key]["current"])) {
+$resources = BrandManager::getImageResources();
+
+if (
+    $key === ""
+    || !isset($resources[$key]["current"])
+    || !file_exists($resources[$key]["current"])
+) {
     throw new AccessDeniedHttpException();
 }
 
-$file = BrandManager::IMAGE_RESOURCES[$key]["current"];
+$file = $resources[$key]["current"];
 
 header('Content-Type: ' . Toolbox::getMime($file));
 header('Cache-Control: no-store, no-cache, must-revalidate');
